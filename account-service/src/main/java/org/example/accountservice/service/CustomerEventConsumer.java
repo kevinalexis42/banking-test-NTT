@@ -26,7 +26,6 @@ public class CustomerEventConsumer {
                     log.info("Received customer event: {} for customer ID: {}", 
                             event.getEventType(), event.getCustomerId());
                     
-                    // Handle different event types
                     switch (event.getEventType()) {
                         case "CREATED":
                             log.info("Customer created: {}", event.getCustomerId());
@@ -36,7 +35,6 @@ public class CustomerEventConsumer {
                             break;
                         case "DELETED":
                             log.info("Customer deleted: {}", event.getCustomerId());
-                            // Optionally handle account deletion logic here
                             break;
                         default:
                             log.warn("Unknown event type: {}", event.getEventType());

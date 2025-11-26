@@ -6,24 +6,24 @@ El proyecto utiliza SpringDoc OpenAPI para generar automáticamente la documenta
 
 ### Customer Service
 
-#### Cuando usas Docker (Puerto 8080)
+#### Con Docker (Puerto 8080)
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8080/api-docs
 - **OpenAPI YAML**: http://localhost:8080/api-docs.yaml
 
-#### Cuando usas Local (Puerto 8083)
+#### Local (Puerto 8083)
 - **Swagger UI**: http://localhost:8083/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8083/api-docs
 - **OpenAPI YAML**: http://localhost:8083/api-docs.yaml
 
 ### Account Service
 
-#### Cuando usas Docker (Puerto 8081)
+#### Con Docker (Puerto 8081)
 - **Swagger UI**: http://localhost:8081/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8081/api-docs
 - **OpenAPI YAML**: http://localhost:8081/api-docs.yaml
 
-#### Cuando usas Local (Puerto 8084)
+#### Local (Puerto 8084)
 - **Swagger UI**: http://localhost:8084/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8084/api-docs
 - **OpenAPI YAML**: http://localhost:8084/api-docs.yaml
@@ -68,13 +68,11 @@ curl http://localhost:8084/api-docs.yaml > account-service-openapi.yaml
 - **Título**: Customer Service API
 - **Versión**: 1.0.0
 - **Descripción**: API for managing customers and persons
-- **Contacto**: NTT Data (support@nttdata.com)
 
 ### Account Service API
 - **Título**: Account Service API
 - **Versión**: 1.0.0
 - **Descripción**: API for managing accounts and movements
-- **Contacto**: NTT Data (support@nttdata.com)
 
 ## Endpoints Documentados
 

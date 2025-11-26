@@ -33,7 +33,6 @@ public class ReportService {
     public Mono<List<MovementReportDto>> generateAccountStatement(Long clientId, LocalDateTime startDate, LocalDateTime endDate) {
         log.info("Generating account statement for client ID: {} from {} to {}", clientId, startDate, endDate);
         
-        // Use the same format as generateMovementReport for consistency
         return generateMovementReport(clientId, startDate, endDate)
                 .doOnSuccess(r -> log.info("Account statement generated successfully for client ID: {}", clientId))
                 .doOnError(error -> log.error("Error generating account statement: {}", error.getMessage()));
@@ -47,7 +46,6 @@ public class ReportService {
                     try (Workbook workbook = new XSSFWorkbook()) {
                         Sheet sheet = workbook.createSheet("Estado de Cuenta");
                         
-                        // Create header style
                         CellStyle headerStyle = workbook.createCellStyle();
                         Font headerFont = workbook.createFont();
                         headerFont.setBold(true);
@@ -61,25 +59,21 @@ public class ReportService {
                         headerStyle.setBorderRight(BorderStyle.THIN);
                         headerStyle.setAlignment(HorizontalAlignment.CENTER);
                         
-                        // Create data style
                         CellStyle dataStyle = workbook.createCellStyle();
                         dataStyle.setBorderBottom(BorderStyle.THIN);
                         dataStyle.setBorderTop(BorderStyle.THIN);
                         dataStyle.setBorderLeft(BorderStyle.THIN);
                         dataStyle.setBorderRight(BorderStyle.THIN);
                         
-                        // Date format
                         CellStyle dateStyle = workbook.createCellStyle();
                         dateStyle.cloneStyleFrom(dataStyle);
                         CreationHelper createHelper = workbook.getCreationHelper();
                         dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd/MM/yyyy HH:mm:ss"));
                         
-                        // Number format
                         CellStyle numberStyle = workbook.createCellStyle();
                         numberStyle.cloneStyleFrom(dataStyle);
                         numberStyle.setDataFormat(createHelper.createDataFormat().getFormat("#,##0.00"));
                         
-                        // Boolean style
                         CellStyle booleanStyle = workbook.createCellStyle();
                         booleanStyle.cloneStyleFrom(dataStyle);
                         booleanStyle.setAlignment(HorizontalAlignment.CENTER);
@@ -87,7 +81,6 @@ public class ReportService {
                         int rowNum = 0;
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
                         
-                        // Table headers
                         Row headerRow = sheet.createRow(rowNum++);
                         String[] headers = {"Fecha", "Cliente", "Número Cuenta", "Tipo", "Saldo Inicial", 
                                            "Estado", "Valor movimiento", "Tipo Movimiento", "Saldo Disponible"};
@@ -97,60 +90,50 @@ public class ReportService {
                             cell.setCellStyle(headerStyle);
                         }
                         
-                        // Movements data
                         for (MovementReportDto movement : movements) {
                             Row movementRow = sheet.createRow(rowNum++);
                             int colNum = 0;
                             
-                            // Fecha
                             Cell dateCell = movementRow.createCell(colNum++);
                             if (movement.getFecha() != null) {
                                 dateCell.setCellValue(movement.getFecha().format(formatter));
                             }
                             dateCell.setCellStyle(dateStyle);
                             
-                            // Cliente
                             Cell clienteCell = movementRow.createCell(colNum++);
                             clienteCell.setCellValue(movement.getCliente() != null ? movement.getCliente() : "");
                             clienteCell.setCellStyle(dataStyle);
                             
-                            // Número Cuenta
                             Cell numeroCuentaCell = movementRow.createCell(colNum++);
                             numeroCuentaCell.setCellValue(movement.getNumeroCuenta() != null ? movement.getNumeroCuenta() : "");
                             numeroCuentaCell.setCellStyle(dataStyle);
                             
-                            // Tipo
                             Cell tipoCell = movementRow.createCell(colNum++);
                             tipoCell.setCellValue(movement.getTipo() != null ? movement.getTipo() : "");
                             tipoCell.setCellStyle(dataStyle);
                             
-                            // Saldo Inicial
                             Cell saldoInicialCell = movementRow.createCell(colNum++);
                             if (movement.getSaldoInicial() != null) {
                                 saldoInicialCell.setCellValue(movement.getSaldoInicial().doubleValue());
                             }
                             saldoInicialCell.setCellStyle(numberStyle);
                             
-                            // Estado
                             Cell estadoCell = movementRow.createCell(colNum++);
                             if (movement.getEstado() != null) {
                                 estadoCell.setCellValue(movement.getEstado() ? "True" : "False");
                             }
                             estadoCell.setCellStyle(booleanStyle);
                             
-                            // Valor movimiento
                             Cell valorMovimientoCell = movementRow.createCell(colNum++);
                             if (movement.getValorMovimiento() != null) {
                                 valorMovimientoCell.setCellValue(movement.getValorMovimiento().doubleValue());
                             }
                             valorMovimientoCell.setCellStyle(numberStyle);
                             
-                            // Tipo Movimiento
                             Cell tipoMovimientoCell = movementRow.createCell(colNum++);
                             tipoMovimientoCell.setCellValue(movement.getTipoMovimiento() != null ? movement.getTipoMovimiento() : "");
                             tipoMovimientoCell.setCellStyle(dataStyle);
                             
-                            // Saldo Disponible
                             Cell saldoDisponibleCell = movementRow.createCell(colNum++);
                             if (movement.getSaldoDisponible() != null) {
                                 saldoDisponibleCell.setCellValue(movement.getSaldoDisponible().doubleValue());
@@ -158,12 +141,10 @@ public class ReportService {
                             saldoDisponibleCell.setCellStyle(numberStyle);
                         }
                         
-                        // Auto-size columns
                         for (int i = 0; i < headers.length; i++) {
                             sheet.autoSizeColumn(i);
                         }
                         
-                        // Convert to byte array
                         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                         workbook.write(outputStream);
                         return outputStream.toByteArray();
@@ -193,9 +174,7 @@ public class ReportService {
                                             movementRepository.findByAccountIdAndMovementDateBetween(account.getId(), startDate, endDate)
                                                     .collectList()
                                                     .map(movements -> {
-                                                        // If account has movements, process them
                                                         if (!movements.isEmpty()) {
-                                                            // Sort movements by date to calculate initial balance correctly
                                                             List<Movement> sortedMovements = movements.stream()
                                                                     .sorted(Comparator.comparing(Movement::getMovementDate))
                                                                     .collect(Collectors.toList());
@@ -206,9 +185,6 @@ public class ReportService {
                                                                                 ? "Débito" 
                                                                                 : "Crédito";
                                                                         
-                                                                        // Calculate saldo inicial (balance before this movement)
-                                                                        // If CREDIT: saldo_inicial = balance - value
-                                                                        // If DEBIT: saldo_inicial = balance + value
                                                                         BigDecimal saldoInicial;
                                                                         if ("CREDIT".equalsIgnoreCase(movement.getMovementType())) {
                                                                             saldoInicial = movement.getBalance().subtract(movement.getValue());
@@ -230,8 +206,6 @@ public class ReportService {
                                                                     })
                                                                     .collect(Collectors.toList());
                                                         } else {
-                                                            // Account has no movements in the date range, but still include it in the report
-                                                            // Use account creation date or updated date, and initial balance as saldo inicial
                                                             LocalDateTime fecha = account.getCreatedAt() != null ? account.getCreatedAt() : LocalDateTime.now();
                                                             return List.of(MovementReportDto.builder()
                                                                     .fecha(fecha)

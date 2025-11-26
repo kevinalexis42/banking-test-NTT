@@ -36,20 +36,16 @@ public class CustomerService {
     public Mono<CustomerDto> createCustomer(CustomerRequestDto requestDto) {
         log.info("Creating customer for person with identification: {}", requestDto.getPerson().getIdentification());
         
-        // Check if person with this identification already exists
         return personRepository.findByIdentification(requestDto.getPerson().getIdentification())
-                .flatMap(existingPerson -> {
-                    // Person exists, check if customer already exists for this person
-                    return customerRepository.findByPersonId(existingPerson.getId())
+                .flatMap(existingPerson -> 
+                    customerRepository.findByPersonId(existingPerson.getId())
                             .flatMap(existingCustomer -> 
                                 Mono.error(new RuntimeException(
                                     String.format("Ya existe un cliente registrado con la identificación '%s'. Por favor, utilice una identificación diferente.", 
                                     requestDto.getPerson().getIdentification()))))
                             .cast(Customer.class)
                             .switchIfEmpty(
-                                    // Person exists but no customer, update Person with new data and create customer
                                     Mono.defer(() -> {
-                                        // Update existing Person with new data from request
                                         existingPerson.setName(requestDto.getPerson().getName());
                                         existingPerson.setGender(requestDto.getPerson().getGender());
                                         existingPerson.setAddress(requestDto.getPerson().getAddress());
@@ -58,7 +54,6 @@ public class CustomerService {
                                         
                                         return personRepository.save(existingPerson)
                                                 .flatMap(updatedPerson -> {
-                                                    // Create customer with updated person
                                                     Customer customer = Customer.builder()
                                                             .personId(updatedPerson.getId())
                                                             .password(requestDto.getPassword())
@@ -69,12 +64,10 @@ public class CustomerService {
                                                     return customerRepository.save(customer);
                                                 });
                                     })
-                            );
-                })
+                            )
+                )
                 .switchIfEmpty(
-                        // Person doesn't exist, create both Person and Customer
                         Mono.defer(() -> {
-                            // First create Person
                             Person person = personMapper.toEntity(
                                     PersonDto.builder()
                                             .name(requestDto.getPerson().getName())
@@ -89,7 +82,6 @@ public class CustomerService {
                             
                             return personRepository.save(person)
                                     .flatMap(savedPerson -> {
-                                        // Then create Customer
                                         Customer customer = Customer.builder()
                                                 .personId(savedPerson.getId())
                                                 .password(requestDto.getPassword())
@@ -102,7 +94,6 @@ public class CustomerService {
                         })
                 )
                 .doOnSuccess(savedCustomer -> 
-                    // Send event asynchronously without blocking the response
                     sendCustomerEvent("CREATED", savedCustomer.getId(), savedCustomer.getPersonId())
                             .subscribe(
                                     null,
@@ -110,23 +101,19 @@ public class CustomerService {
                             )
                 )
                 .flatMap(customer -> 
-                    // Fetch person data to build complete DTO
                     personRepository.findById(customer.getPersonId())
-                            .map(person -> {
-                                // Build CustomerDto with Person data
-                                return CustomerDto.builder()
-                                        .id(customer.getId())
-                                        .name(person.getName())
-                                        .gender(person.getGender())
-                                        .identification(person.getIdentification())
-                                        .address(person.getAddress())
-                                        .phone(person.getPhone())
-                                        .password(customer.getPassword())
-                                        .status(customer.getStatus())
-                                        .createdAt(customer.getCreatedAt())
-                                        .updatedAt(customer.getUpdatedAt())
-                                        .build();
-                            })
+                            .map(person -> CustomerDto.builder()
+                                    .id(customer.getId())
+                                    .name(person.getName())
+                                    .gender(person.getGender())
+                                    .identification(person.getIdentification())
+                                    .address(person.getAddress())
+                                    .phone(person.getPhone())
+                                    .password(customer.getPassword())
+                                    .status(customer.getStatus())
+                                    .createdAt(customer.getCreatedAt())
+                                    .updatedAt(customer.getUpdatedAt())
+                                    .build())
                 )
                 .doOnSuccess(c -> log.info("Customer created successfully with ID: {}", c.getId()))
                 .doOnError(error -> log.error("Error creating customer: {}", error.getMessage()));
@@ -160,7 +147,6 @@ public class CustomerService {
         return customerRepository.findById(id)
                 .switchIfEmpty(Mono.error(new RuntimeException("Customer not found with ID: " + id)))
                 .flatMap(existingCustomer -> {
-                    // Update Customer fields only if provided
                     if (updateDto.getPassword() != null) {
                         existingCustomer.setPassword(updateDto.getPassword());
                     }
@@ -169,7 +155,6 @@ public class CustomerService {
                     }
                     existingCustomer.setUpdatedAt(LocalDateTime.now());
                     
-                    // Update Person fields only if provided
                     return personRepository.findById(existingCustomer.getPersonId())
                             .switchIfEmpty(Mono.error(new RuntimeException("Person not found for customer")))
                             .flatMap(existingPerson -> {
@@ -193,13 +178,11 @@ public class CustomerService {
                                 return personRepository.save(existingPerson)
                                         .then(customerRepository.save(existingCustomer))
                                         .flatMap(updated -> {
-                                            // Send event asynchronously without blocking the response
                                             sendCustomerEvent("UPDATED", updated.getId(), updated.getPersonId())
                                                     .subscribe(
                                                             null,
                                                             error -> log.error("Error sending customer event (non-blocking): {}", error.getMessage())
                                                     );
-                                            // Continue with building the DTO
                                             return personRepository.findById(updated.getPersonId())
                                                     .map(person -> buildCustomerDto(updated, person));
                                         });
@@ -217,7 +200,6 @@ public class CustomerService {
                 .flatMap(customer -> 
                     customerRepository.delete(customer)
                             .doOnSuccess(v -> 
-                                // Send event asynchronously without blocking the response
                                 sendCustomerEvent("DELETED", customer.getId(), customer.getId())
                                         .subscribe(
                                                 null,

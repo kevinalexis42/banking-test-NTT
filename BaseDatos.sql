@@ -114,31 +114,3 @@ CREATE INDEX IF NOT EXISTS idx_accounts_customer_id ON accounts(customer_id);
 CREATE INDEX IF NOT EXISTS idx_accounts_account_number ON accounts(account_number);
 CREATE INDEX IF NOT EXISTS idx_movements_account_id ON movements(account_id);
 CREATE INDEX IF NOT EXISTS idx_movements_date ON movements(movement_date);
-
--- Datos de la tabla accounts
-id|account_number|account_type|initial_balance|current_balance|status|customer_id|created_at             |updated_at             |
---+--------------+------------+---------------+---------------+------+-----------+-----------------------+-----------------------+
- 1|1234567890    |SAVINGS     |        1000.00|        1300.00|true  |          3|2025-11-23 17:53:30.965|2025-11-23 17:54:53.756|
- 2|478758        |Ahorro      |        2000.00|        2025.00|true  |         10|2025-11-25 00:51:38.332|2025-11-25 21:09:10.340|
-
--- Datos de la tabla movements
-id|account_id|movement_date          |movement_type|value |balance|created_at             |
---+----------+-----------------------+-------------+------+-------+-----------------------+
- 1|         1|2025-11-23 17:54:03.742|CREDIT       |500.00|1500.00|2025-11-23 17:54:03.742|
- 2|         1|2025-11-23 17:54:53.756|DEBIT        |200.00|1300.00|2025-11-23 17:54:53.756|
- 3|         2|2025-11-25 21:07:11.303|CREDIT       |600.00|2600.00|2025-11-25 21:07:11.303|
- 4|         2|2025-11-25 21:09:10.340|DEBIT        |575.00|2025.00|2025-11-25 21:09:10.340|
-
- -- Datos de la tabla customers
- id|person_id|password|status|created_at             |updated_at             |
---+---------+--------+------+-----------------------+-----------------------+
-10|       10|1234    |true  |2025-11-25 00:37:25.728|2025-11-25 00:37:25.728|
- 9|        9|1234    |true  |2025-11-25 00:36:27.893|2025-11-25 00:43:52.676|
-
--- Datos de la tabla persons
-id|name             |gender|identification|address                    |phone     |created_at             |updated_at             |
---+-----------------+------+--------------+---------------------------+----------+-----------------------+-----------------------+
- 3|Juan Pérez       |MALE  |1234567890    |Calle Principal 123, Ciudad|555-1234  |2025-11-23 12:50:07.581|2025-11-23 12:50:07.581|
- 4|Alexis Altamirano|Female|1725276487    |La Santiago                |222222222 |2025-11-23 12:51:57.758|2025-11-23 12:51:57.758|
-10|Ambar Almeida    |F     |0550057699    |Barrio nuevo               |0999999999|2025-11-25 00:37:25.721|2025-11-25 00:37:25.721|
- 9|Freddy Altamirano|M     |1708888787001 |                           |          |2025-11-25 00:36:27.866|2025-11-25 00:43:52.680|

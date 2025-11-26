@@ -30,10 +30,15 @@ El sistema está dividido en **2 microservicios** que trabajan juntos:
 
 **Endpoints principales**:
 - `POST /api/v1/customers` - Crear un nuevo cliente
-- `GET /api/v1/customers` - Ver todos los clientes
+- `GET /api/v1/customers` - Ver todos los clientes activos (status = true)
 - `GET /api/v1/customers/{id}` - Ver un cliente específico
-- `PUT /api/v1/customers/{id}` - Actualizar un cliente
+- `PUT /api/v1/customers/{id}` - Actualizar un cliente (actualización parcial - solo campos enviados)
 - `DELETE /api/v1/customers/{id}` - Eliminar un cliente
+
+**Características**:
+- ✅ Validación de identificación duplicada al crear cliente
+- ✅ Actualización parcial: solo el ID es obligatorio, todos los demás campos son opcionales
+- ✅ Solo retorna clientes activos en el listado general
 
 ### 2. Account Service (Servicio de Cuentas)
 **Puerto**: 8081 (Docker) o 8084 (local)
@@ -47,8 +52,17 @@ El sistema está dividido en **2 microservicios** que trabajan juntos:
 **Endpoints principales**:
 - `POST /api/v1/accounts` - Crear una cuenta
 - `GET /api/v1/accounts` - Ver todas las cuentas
+- `GET /api/v1/accounts/{id}` - Ver una cuenta específica
+- `GET /api/v1/accounts/customer/{customerId}` - Ver cuentas de un cliente
+- `PUT /api/v1/accounts/{id}` - Actualizar una cuenta (actualización parcial - solo account_type, status e initial_balance)
+- `DELETE /api/v1/accounts/{id}` - Eliminar una cuenta
 - `POST /api/v1/movements` - Realizar un movimiento (depósito o retiro)
-- `GET /reports/{client-id}` - Generar estado de cuenta
+- `GET /reports/{client-id}` - Generar estado de cuenta (JSON o Excel)
+- `GET /reports/{client-id}/movements` - Listado detallado de movimientos por fecha y usuario
+
+**Características**:
+- ✅ Validación de número de cuenta duplicado al crear cuenta
+- ✅ Actualización parcial: solo el ID es obligatorio, solo se pueden actualizar account_type, status e initial_balance
 
 ---
 
@@ -132,6 +146,14 @@ Puedes crear, leer, actualizar y eliminar:
 
 Cada entidad tiene operaciones completas de CRUD con validaciones.
 
+**Actualización Parcial**:
+- ✅ **Clientes**: Solo el ID es obligatorio. Todos los campos (name, gender, identification, address, phone, password, status) son opcionales. Solo se actualizan los campos enviados.
+- ✅ **Cuentas**: Solo el ID es obligatorio. Solo se pueden actualizar: `account_type`, `status` e `initial_balance`. Todos son opcionales.
+
+**Validaciones de Duplicados**:
+- ✅ No se puede crear un cliente con una identificación que ya existe
+- ✅ No se puede crear una cuenta con un número de cuenta que ya existe
+
 ### F2: Registro de Movimientos ✅
 
 **Reglas importantes**:
@@ -163,17 +185,31 @@ Si intentas retirar más dinero del disponible, el sistema:
 
 Puedes generar reportes que muestran:
 - 📊 Todas las cuentas de un cliente
-- 💰 El saldo actual de cada cuenta
+- 👤 Nombre del cliente en cada fila
+- 💰 Saldo inicial (antes del movimiento) y saldo disponible (después del movimiento)
 - 📝 El detalle de todos los movimientos en un rango de fechas
 
 **Formatos disponibles**:
 - **JSON**: Para integración con otros sistemas
-- **Excel**: Para análisis y presentación
+- **Excel**: Para análisis y presentación (generado en memoria, descarga directa)
+
+**Formato del reporte**:
+- Retorna un **array plano** de movimientos (no agrupado por cuenta)
+- Cada fila incluye: Fecha, Cliente (nombre), Número Cuenta, Tipo, Saldo Inicial, Estado, Valor movimiento, Tipo Movimiento, Saldo Disponible
+- Muestra **TODAS las cuentas** del cliente, incluso las que no tienen movimientos en el rango de fechas
+- El saldo inicial se calcula automáticamente (saldo antes del movimiento)
+- El saldo disponible es el saldo después del movimiento
+- Los movimientos están ordenados por fecha (más recientes primero)
+
+**Endpoints disponibles**:
+- `GET /reports/{client-id}?startDate={fecha}&endDate={fecha}&format={json|excel}` - Estado de cuenta en JSON o Excel
+- `GET /reports/{client-id}/movements?startDate={fecha}&endDate={fecha}` - Listado detallado de movimientos
 
 **Ejemplo de uso**:
 ```
-GET /reports/1?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59&format=json
-GET /reports/1?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59&format=excel
+GET /reports/1?startDate=2025-01-01T00:00:00&endDate=2025-12-31T23:59:59&format=json
+GET /reports/1?startDate=2025-01-01T00:00:00&endDate=2025-12-31T23:59:59&format=excel
+GET /reports/1/movements?startDate=2025-01-01T00:00:00&endDate=2025-12-31T23:59:59
 ```
 
 ### F5: Pruebas Unitarias ✅
@@ -323,18 +359,25 @@ Content-Type: application/json
 
 **En formato JSON**:
 ```bash
-GET http://localhost:8081/reports/1?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59&format=json
+GET http://localhost:8081/reports/1?startDate=2025-01-01T00:00:00&endDate=2025-12-31T23:59:59&format=json
 ```
 
 **En formato Excel**:
 ```bash
-GET http://localhost:8081/reports/1?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59&format=excel
+GET http://localhost:8081/reports/1?startDate=2025-01-01T00:00:00&endDate=2025-12-31T23:59:59&format=excel
+```
+
+**Listado detallado de movimientos**:
+```bash
+GET http://localhost:8081/reports/1/movements?startDate=2025-01-01T00:00:00&endDate=2025-12-31T23:59:59
 ```
 
 **Qué obtienes**:
-- 📊 Lista de todas las cuentas del cliente
-- 💰 Saldo actual de cada cuenta
-- 📝 Historial completo de movimientos con fechas, tipos y valores
+- 📊 Array plano de movimientos de todas las cuentas del cliente
+- 👤 Nombre del cliente en cada fila
+- 💰 Saldo inicial (antes del movimiento) y saldo disponible (después del movimiento)
+- 📝 Historial completo con: fecha, cliente, número cuenta, tipo, saldo inicial, estado, valor movimiento, tipo movimiento, saldo disponible
+- 📋 Todas las cuentas aparecen, incluso las que no tienen movimientos en el rango
 
 ---
 
@@ -426,18 +469,6 @@ Ver [OPENAPI_ESPECIFICACION.md](OPENAPI_ESPECIFICACION.md) para más detalles.
 
 Ejemplos de comandos curl están en la sección "Casos de Uso" más arriba.
 
-### Opción 4: Seguir el Flujo Completo
-
-Para probar **todas y cada una** de las funcionalidades de manera exhaustiva, sigue el documento:
-**[FLUJO_PRUEBAS_EXHAUSTIVO.md](FLUJO_PRUEBAS_EXHAUSTIVO.md)**
-
-Este documento incluye:
-- ✅ Paso a paso para cada funcionalidad
-- ✅ Qué verificar en cada caso
-- ✅ Ejemplos de requests y responses esperados
-- ✅ Cómo verificar en la base de datos
-- ✅ Casos de error y cómo manejarlos
-
 ---
 
 ## 🏛️ Estructura del Proyecto
@@ -461,14 +492,14 @@ SkillTest_NttData/
 │   └── src/test/                # Pruebas
 │
 ├── 📁 account-service/          # Microservicio de Cuentas
-│   ├── src/main/java/          # (Misma estructura)
+│   ├── src/main/java/          # Código fuente
 │   │   └── org/example/accountservice/
 │   │       ├── controller/      # Endpoints REST
 │   │       ├── service/         # Lógica de negocio
 │   │       ├── repository/     # Acceso a base de datos
 │   │       ├── entity/          # Entidades (Account, Movement)
 │   │       └── ...
-│   └── src/test/                # Pruebas (incluye integración)
+│   └── src/test/                # Pruebas
 │
 ├── 📄 docker-compose.yml        # Configuración de Docker
 ├── 📄 BaseDatos.sql            # Script completo de base de datos
@@ -476,9 +507,6 @@ SkillTest_NttData/
 │
 └── 📚 Documentación/
     ├── README.md                # Este archivo
-    ├── FLUJO_PRUEBAS_EXHAUSTIVO.md
-    ├── VERIFICACION_EXHAUSTIVA_REQUISITOS.md
-    ├── CONFIGURACION_DUAL.md
     └── ... (más documentos)
 ```
 
@@ -488,8 +516,8 @@ SkillTest_NttData/
 
 ### Backend
 - **Spring Boot 3.2.5** - Framework principal de Java
-- **Spring WebFlux** - Para programación reactiva (no bloqueante)
-- **R2DBC** - Para acceso reactivo a base de datos (no bloqueante)
+- **Spring WebFlux** - Para programación reactiva
+- **R2DBC** - Para acceso reactivo a base de datos
 - **PostgreSQL** - Base de datos relacional
 
 ### Comunicación
@@ -585,12 +613,13 @@ SkillTest_NttData/
 #### Reportes
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/reports/{client-id}?startDate={fecha}&endDate={fecha}&format={json\|excel}` | Generar estado de cuenta |
+| GET | `/reports/{client-id}?startDate={fecha}&endDate={fecha}&format={json\|excel}` | Generar estado de cuenta (JSON o Excel) |
+| GET | `/reports/{client-id}/movements?startDate={fecha}&endDate={fecha}` | Listado detallado de movimientos por fecha y usuario |
 
 **Parámetros del reporte**:
 - `client-id`: ID del cliente (en la URL)
-- `startDate`: Fecha de inicio (formato: `2024-01-01T00:00:00`)
-- `endDate`: Fecha de fin (formato: `2024-12-31T23:59:59`)
+- `startDate`: Fecha de inicio (formato: `2025-01-01T00:00:00`)
+- `endDate`: Fecha de fin (formato: `2025-12-31T23:59:59`)
 - `format`: `json` o `excel` (opcional, por defecto es `json`)
 
 ---
@@ -676,46 +705,6 @@ docker-compose up -d
 
 ---
 
-## 🔧 Solución de Problemas Comunes
-
-### Problema: "Port already in use"
-
-**Solución**:
-- Si usas Docker: Verifica que Docker esté usando los puertos 8080 y 8081
-- Si usas IntelliJ: Los servicios usan puertos 8083 y 8084 (no debería haber conflicto)
-- Si hay conflicto: Detén el proceso que está usando el puerto o cambia el puerto en `application.yml`
-
-### Problema: "Cannot connect to database"
-
-**Solución**:
-1. Verifica que Docker esté corriendo: `docker-compose ps`
-2. Verifica que PostgreSQL esté "healthy": `docker-compose ps postgres-customer`
-3. Espera unos segundos después de iniciar Docker (las bases de datos tardan en estar listas)
-
-### Problema: "CustomerMapper not found" (en IntelliJ)
-
-**Solución**:
-1. Abre la pestaña **Maven** en IntelliJ
-2. Expande `customer-service` → **Lifecycle**
-3. Ejecuta: **clean** y luego **compile**
-4. Esto genera automáticamente los mappers necesarios
-
-### Problema: "Cannot connect to Kafka"
-
-**Solución**:
-1. Verifica que Kafka esté corriendo: `docker-compose ps kafka`
-2. Verifica que Kafka esté "healthy"
-3. Espera unos segundos después de iniciar Docker
-
-### Problema: Los servicios no inician en Docker
-
-**Solución**:
-1. Verifica los logs: `docker-compose logs customer-service`
-2. Asegúrate de que las bases de datos estén "healthy" antes de que los servicios intenten conectarse
-3. Reconstruye las imágenes: `docker-compose build`
-
----
-
 ## 📝 Scripts y Archivos Importantes
 
 ### BaseDatos.sql
@@ -770,66 +759,3 @@ Kafka es un sistema de mensajería que permite que los microservicios se comuniq
 
 ---
 
-## 📚 Recursos Adicionales
-
-### Documentación Técnica Detallada
-
-- **[VERIFICACION_EXHAUSTIVA_REQUISITOS.md](VERIFICACION_EXHAUSTIVA_REQUISITOS.md)** - Verificación técnica completa de todos los requisitos
-- **[FLUJO_PRUEBAS_EXHAUSTIVO.md](FLUJO_PRUEBAS_EXHAUSTIVO.md)** - Guía paso a paso para probar todas las funcionalidades
-- **[RESUMEN_VERIFICACION_COMPLETA.md](RESUMEN_VERIFICACION_COMPLETA.md)** - Resumen ejecutivo de la verificación
-
-### Guías de Configuración
-
-- **[CONFIGURACION_DUAL.md](CONFIGURACION_DUAL.md)** - Cómo ejecutar Docker e IntelliJ simultáneamente
-- **[CONFIGURACION_DBEAVER.md](CONFIGURACION_DBEAVER.md)** - Configuración de DBeaver para bases de datos
-- **[VERIFICACION_DOCKER.md](VERIFICACION_DOCKER.md)** - Verificación de configuración Docker
-
-### Solución de Problemas
-
-- **[SOLUCION_ERRORES.md](SOLUCION_ERRORES.md)** - Soluciones a errores comunes
-
----
-
-## ✅ Checklist de Verificación Rápida
-
-Antes de empezar a trabajar, verifica:
-
-- [ ] Docker está instalado y corriendo
-- [ ] Java 17 o superior está instalado
-- [ ] Maven está instalado (si vas a compilar manualmente)
-- [ ] Los servicios están corriendo (`docker-compose ps`)
-- [ ] Puedes acceder a Swagger UI
-- [ ] Las bases de datos están accesibles (si usas DBeaver)
-
----
-
-## 🎯 Próximos Pasos
-
-1. **Inicia el sistema**: `docker-compose up -d`
-2. **Abre Swagger UI**: http://localhost:8080/swagger-ui.html
-3. **Prueba crear un cliente**: Usa el endpoint POST `/api/v1/customers`
-4. **Sigue el flujo completo**: Consulta [FLUJO_PRUEBAS_EXHAUSTIVO.md](FLUJO_PRUEBAS_EXHAUSTIVO.md)
-
----
-
-## 📞 Soporte
-
-Si encuentras algún problema:
-
-1. Revisa la sección "Solución de Problemas" más arriba
-2. Consulta [SOLUCION_ERRORES.md](SOLUCION_ERRORES.md)
-3. Revisa los logs: `docker-compose logs -f`
-
----
-
-## 📄 Licencia
-
-Este proyecto fue desarrollado como parte de una prueba técnica para NTT Data.
-
----
-
-## 🙏 Agradecimientos
-
-Este proyecto implementa todas las mejores prácticas de desarrollo de microservicios con programación reactiva, arquitectura limpia y pruebas automatizadas.
-
-**¡Disfruta explorando el sistema!** 🚀

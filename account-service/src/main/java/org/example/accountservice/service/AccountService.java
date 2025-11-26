@@ -74,7 +74,6 @@ public class AccountService {
         return accountRepository.findById(id)
                 .switchIfEmpty(Mono.error(new RuntimeException("Account not found with ID: " + id)))
                 .flatMap(existing -> {
-                    // Se pueden actualizar account_type, status e initial_balance
                     if (updateDto.getAccountType() != null) {
                         existing.setAccountType(updateDto.getAccountType());
                     }

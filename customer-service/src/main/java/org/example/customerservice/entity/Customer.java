@@ -10,11 +10,6 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
-/**
- * Customer entity that references Person.
- * Customer has a foreign key relationship with Person (person_id).
- * Person fields are accessed via JOIN queries.
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -25,11 +20,9 @@ public class Customer {
     @Id
     private Long id;
     
-    // Foreign key to Person
     @Column("person_id")
     private Long personId;
     
-    // Customer specific fields
     @Column("password")
     private String password;
     

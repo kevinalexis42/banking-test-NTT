@@ -28,7 +28,7 @@ public class Movement {
     private LocalDateTime movementDate;
     
     @Column("movement_type")
-    private String movementType; // DEBIT or CREDIT
+    private String movementType;
     
     @Column("value")
     private BigDecimal value;
